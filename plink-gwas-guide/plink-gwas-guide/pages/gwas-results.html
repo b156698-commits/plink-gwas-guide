@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GWAS Results 教學：介紹 genome-wide significance、suggestive significance，以及後續 Manhattan Plot 與 QQ Plot 的判讀方向。">
+  <title>GWAS Results | PLINK / GWAS QC Guide</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="../index.html">
+        <span class="brand-icon">🧬</span>
+        <span>PLINK / GWAS QC Guide</span>
+      </a>
+      <nav class="top-nav">
+        <a href="../index.html#workflow">Workflow</a>
+        <a href="../index.html#qc-topics">QC Topics</a>
+        <a href="../index.html#gwas-analysis">GWAS Analysis</a>
+        <a href="../index.html#gwas-results">GWAS Results</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="lesson-hero results-hero">
+      <div class="container lesson-hero-grid">
+        <div>
+          <p class="eyebrow">GWAS Results Interpretation</p>
+          <h1>Significance Thresholds</h1>
+          <p class="hero-text">
+            完成 association analysis 後，不能只看單一 P-value。
+            GWAS 同時測試大量 variants，因此需要把 multiple testing 納入考量，
+            再判斷哪些訊號達到 genome-wide significance。
+          </p>
+          <div class="tag-row">
+            <span class="code-tag">P &lt; 5 × 10⁻⁸</span>
+            <span class="code-tag">Suggestive evidence</span>
+          </div>
+        </div>
+        <div class="lesson-icon" aria-hidden="true">🎯</div>
+      </div>
+    </section>
+
+    <section class="lesson-section">
+      <div class="container lesson-layout">
+        <aside class="lesson-sidebar">
+          <p class="sidebar-title">本頁內容</p>
+          <a href="#why">為什麼需要門檻？</a>
+          <a href="#genome-wide">Genome-wide significance</a>
+          <a href="#suggestive">Suggestive significance</a>
+          <a href="#compare">兩者怎麼區分？</a>
+          <a href="#next">下一步怎麼看？</a>
+          <a href="#notes">注意事項</a>
+          <a href="#sources">參考資料</a>
+        </aside>
+
+        <article class="lesson-content">
+          <section class="lesson-card" id="why">
+            <span class="lesson-label">01</span>
+            <h2>為什麼 GWAS 不能只用 P &lt; 0.05？</h2>
+            <p>
+              GWAS 會同時檢驗大量 genetic variants。若每一個 variant 都直接使用
+              <code>P &lt; 0.05</code>，就會產生大量 false positive。
+            </p>
+            <p>
+              因此 GWAS 通常會使用比一般統計檢定更嚴格的 threshold，
+              來控制 genome-wide multiple testing burden。
+            </p>
+
+            <div class="concept-flow">
+              <div class="mini-step">
+                <strong>大量 SNP tests</strong>
+                <span>同時進行許多假設檢定</span>
+              </div>
+              <span class="mini-arrow">→</span>
+              <div class="mini-step">
+                <strong>Multiple testing</strong>
+                <span>False positive 機會增加</span>
+              </div>
+              <span class="mini-arrow">→</span>
+              <div class="mini-step">
+                <strong>更嚴格門檻</strong>
+                <span>Genome-wide significance</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="lesson-card significance-card" id="genome-wide">
+            <span class="lesson-label">02</span>
+            <h2>Genome-wide Significance</h2>
+
+            <div class="threshold-display">
+              <span class="threshold-label">常見門檻</span>
+              <div class="threshold-value">P &lt; 5 × 10<sup>−8</sup></div>
+            </div>
+
+            <p>
+              在常見的人類 GWAS 中，<strong>P &lt; 5 × 10<sup>−8</sup></strong>
+              是最常使用的 genome-wide significance threshold 之一。
+              這個數值反映了 GWAS 中大量、且彼此不完全獨立的 genetic tests 所帶來的 multiple-testing burden。
+            </p>
+
+            <p class="example-note">
+              這是非常常見的 conventional threshold，但不是所有 genetic study
+              在所有情境下都只能使用同一個數值。實際門檻仍可能受到研究設計、
+              ancestry、variant set、sequencing / array 設計與分析方法影響。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="suggestive">
+            <span class="lesson-label">03</span>
+            <h2>Suggestive Significance</h2>
+            <p>
+              有些 studies 會另外標示「suggestive」或「suggestive evidence」，
+              用來表示某個 variant 尚未達到 genome-wide significance，
+              但訊號可能值得進一步追蹤、replication 或後續功能研究。
+            </p>
+
+            <div class="threshold-display soft">
+              <span class="threshold-label">常見示範</span>
+              <div class="threshold-value smaller">例如 P &lt; 1 × 10<sup>−5</sup></div>
+            </div>
+
+            <p>
+              <strong>P &lt; 1 × 10<sup>−5</sup></strong> 在部分 GWAS 文獻中會被拿來當作
+              suggestive threshold，但它不像 <code>5 × 10⁻⁸</code> 那樣具有廣泛一致的使用慣例。
+            </p>
+
+            <p class="example-note">
+              因此本網站把 suggestive threshold 視為「研究者依研究目的設定的參考門檻」，
+              而不是固定標準。閱讀論文時應以該研究自己定義的 criteria 為準。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="compare">
+            <span class="lesson-label">04</span>
+            <h2>兩者怎麼區分？</h2>
+
+            <div class="output-table-wrap">
+              <table class="guide-table">
+                <thead>
+                  <tr>
+                    <th>類型</th>
+                    <th>常見用途</th>
+                    <th>判讀方式</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Genome-wide significance</strong></td>
+                    <td>判斷是否達到 genome-wide statistical significance</td>
+                    <td>常見人類 GWAS 使用 <code>P &lt; 5 × 10⁻⁸</code></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Suggestive evidence</strong></td>
+                    <td>標記值得後續追蹤、replication 的訊號</td>
+                    <td>門檻依研究而異；部分研究使用 <code>P &lt; 1 × 10⁻⁵</code></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="lesson-card" id="next">
+            <span class="lesson-label">05</span>
+            <h2>有了 P-value，下一步怎麼看？</h2>
+            <p>
+              GWAS 結果通常不會只用表格閱讀。下一步常會把 genome-wide P-values
+              整理成圖形，快速觀察整體 association signals 與檢定分布。
+            </p>
+
+            <div class="result-interpret-grid">
+              <div class="interpret-box">
+                <strong>Manhattan Plot</strong>
+                <span>看各 chromosome 上是否出現超過 significance line 的 peaks。</span>
+              </div>
+              <div class="interpret-box">
+                <strong>QQ Plot</strong>
+                <span>比較 observed 與 expected P-values，觀察整體偏離情況。</span>
+              </div>
+              <div class="interpret-box">
+                <strong>Top variants</strong>
+                <span>整理 lead SNPs、effect size、P-value 與 locus 資訊。</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="lesson-card note-card" id="notes">
+            <span class="lesson-label">06</span>
+            <h2>注意事項</h2>
+            <ul>
+              <li><code>P &lt; 5 × 10⁻⁸</code> 是常見的 human GWAS genome-wide threshold，但不應描述成任何研究都不可變動的唯一規則。</li>
+              <li>Suggestive significance 沒有單一 universally accepted threshold；若使用 <code>1 × 10⁻⁵</code>，應明確標示為常見示範或該研究自行設定的門檻。</li>
+              <li>達到 statistical significance 不代表 variant 一定具有 causal effect。</li>
+              <li>未達 genome-wide significance 也不代表完全沒有研究價值；可能仍需要 replication、meta-analysis 或 functional follow-up。</li>
+              <li>判讀結果時也應同時考慮 effect size、sample size、population structure、QC、imputation quality 與研究設計。</li>
+            </ul>
+          </section>
+
+          <section class="lesson-card" id="sources">
+            <span class="lesson-label">07</span>
+            <h2>參考資料</h2>
+            <p>
+              本頁對 genome-wide significance 的說明參考 GWAS multiple-testing 文獻與實際大型 GWAS 的常見做法；
+              suggestive threshold 則特別保留「研究間可能不同」的說明。
+            </p>
+
+            <div class="source-links">
+              <a class="reference-link" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8847724/" target="_blank" rel="noopener">
+                Post-GWAS analysis overview ↗
+              </a>
+              <a class="reference-link" href="https://www.nature.com/articles/s41588-023-01343-9" target="_blank" rel="noopener">
+                Nature Genetics GWAS example ↗
+              </a>
+              <a class="reference-link" href="https://doi.org/10.1002/gepi.20303" target="_blank" rel="noopener">
+                Pe'er et al. (2008) ↗
+              </a>
+            </div>
+          </section>
+
+          <nav class="lesson-pagination" aria-label="教學頁導覽">
+            <a class="page-nav muted-link" href="association.html">← Association Analysis</a>
+            <a class="page-nav home-link" href="../index.html">回到首頁</a>
+            <a class="page-nav muted-link" href="manhattan-plot.html">下一頁：Manhattan Plot →</a>
+          </nav>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>PLINK / GWAS QC Guide</p>
+      <p>GWAS Results · Significance Thresholds.</p>
+    </div>
+  </footer>
+</body>
+</html>

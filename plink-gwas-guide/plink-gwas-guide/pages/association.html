@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PLINK case-control GWAS association analysis 教學：介紹 phenotype、covariates、PCA PCs、--logistic 與 .assoc.logistic 結果。">
+  <title>Association Analysis | PLINK / GWAS QC Guide</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="../index.html">
+        <span class="brand-icon">🧬</span>
+        <span>PLINK / GWAS QC Guide</span>
+      </a>
+      <nav class="top-nav">
+        <a href="../index.html#workflow">Workflow</a>
+        <a href="../index.html#qc-topics">QC Topics</a>
+        <a href="../index.html#gwas-analysis">GWAS Analysis</a>
+        <a href="../index.html#gwas-results">GWAS Results</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="lesson-hero">
+      <div class="container lesson-hero-grid">
+        <div>
+          <p class="eyebrow">GWAS Analysis</p>
+          <h1>Association Analysis</h1>
+          <p class="hero-text">
+            完成基本 QC 後，以 case-control phenotype 為例，
+            將 phenotype、covariates 與 PCA principal components 放入 logistic regression，
+            檢驗各 variant 與疾病狀態之間的 association。
+          </p>
+          <div class="tag-row">
+            <span class="code-tag">--pheno</span>
+            <span class="code-tag">--covar</span>
+            <span class="code-tag">--logistic</span>
+          </div>
+        </div>
+        <div class="lesson-icon" aria-hidden="true">🔬</div>
+      </div>
+    </section>
+
+    <section class="lesson-section">
+      <div class="container lesson-layout">
+        <aside class="lesson-sidebar">
+          <p class="sidebar-title">本頁內容</p>
+          <a href="#overview">分析概念</a>
+          <a href="#dataset">使用哪一份資料？</a>
+          <a href="#phenotype">Phenotype</a>
+          <a href="#covariates">Covariates</a>
+          <a href="#command">Logistic Regression</a>
+          <a href="#output">輸出結果</a>
+          <a href="#interpret">結果怎麼看？</a>
+          <a href="#notes">注意事項</a>
+          <a href="#sources">參考資料</a>
+        </aside>
+
+        <article class="lesson-content">
+          <section class="lesson-card" id="overview">
+            <span class="lesson-label">01</span>
+            <h2>分析概念</h2>
+            <p>
+              對 case-control GWAS 而言，常見的目標是檢驗每個 variant 的 genotype
+              是否與 case / control status 有關，同時控制 age、sex、principal components
+              等可能的 covariates。
+            </p>
+
+            <div class="concept-flow">
+              <div class="mini-step">
+                <strong>Genotype</strong>
+                <span>每個 variant 的 allele dosage</span>
+              </div>
+              <span class="mini-arrow">+</span>
+              <div class="mini-step">
+                <strong>Covariates</strong>
+                <span>Age、Sex、PCs ...</span>
+              </div>
+              <span class="mini-arrow">→</span>
+              <div class="mini-step">
+                <strong>Logistic Model</strong>
+                <span>Case / Control outcome</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="lesson-card note-card" id="dataset">
+            <span class="lesson-label">02</span>
+            <h2>Association Analysis 要使用哪一份資料？</h2>
+            <p>
+              前面的 LD pruning 主要是為 PCA、relatedness 等分析建立較相互獨立的 SNP set。
+              <strong>正式 GWAS association testing 通常不應只剩下 LD-pruned SNPs。</strong>
+            </p>
+            <p>
+              比較常見的做法是：
+            </p>
+
+            <div class="dataset-paths">
+              <div class="dataset-path">
+                <strong>LD-pruned dataset</strong>
+                <span>用於 PCA / Relatedness</span>
+              </div>
+              <div class="dataset-path">
+                <strong>Full post-QC dataset</strong>
+                <span>套用 sample QC 後，用於 genome-wide association testing</span>
+              </div>
+            </div>
+
+            <p>
+              因此 PCA 可以從 LD-pruned SNPs 計算 PCs，再把這些 PC scores
+              合併到 covariate file；association analysis 則回到經過 variant / sample QC
+              但保留 genome-wide variants 的資料。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="phenotype">
+            <span class="lesson-label">03</span>
+            <h2>Phenotype 檔案</h2>
+            <p>
+              PLINK 可以從 <code>.fam</code> 讀取 phenotype，也可以使用
+              <code>--pheno</code> 載入額外的 phenotype file。
+            </p>
+
+            <p>Case-control phenotype 的常見 PLINK 1.9 編碼為：</p>
+
+            <div class="output-table-wrap">
+              <table class="guide-table">
+                <thead>
+                  <tr>
+                    <th>值</th>
+                    <th>意義</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>1</code></td>
+                    <td>Control / unaffected</td>
+                  </tr>
+                  <tr>
+                    <td><code>2</code></td>
+                    <td>Case / affected</td>
+                  </tr>
+                  <tr>
+                    <td><code>-9</code> 或 <code>0</code></td>
+                    <td>Missing phenotype</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p>例如：</p>
+
+            <pre class="code-panel"><code>FID IID STATUS
+F001 I001 1
+F002 I002 2
+F003 I003 1
+F004 I004 2</code></pre>
+
+            <div class="command-block">
+              <span class="command-title">指定 phenotype</span>
+              <code>--pheno phenotype.txt --pheno-name STATUS</code>
+            </div>
+          </section>
+
+          <section class="lesson-card" id="covariates">
+            <span class="lesson-label">04</span>
+            <h2>Covariates</h2>
+            <p>
+              <code>--covar</code> 可載入 covariate file。前兩欄應為 FID、IID，
+              後面的欄位則放入想控制的 covariates。
+            </p>
+
+            <p>例如：</p>
+
+            <pre class="code-panel"><code>FID IID AGE SEX PC1 PC2 PC3
+F001 I001 65 1 -0.012  0.021 -0.004
+F002 I002 72 2  0.008 -0.016  0.011
+F003 I003 69 1 -0.006  0.005  0.007
+F004 I004 74 2  0.015 -0.009 -0.010</code></pre>
+
+            <div class="command-block">
+              <span class="command-title">指定 covariates</span>
+              <code>--covar covariates.txt --covar-name AGE,SEX,PC1-PC3</code>
+            </div>
+
+            <p class="example-note">
+              這裡使用 AGE、SEX、PC1–PC3 只是教學範例。
+              真正要控制哪些 covariates，以及需要多少 PCs，應依研究設計決定。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="command">
+            <span class="lesson-label">05</span>
+            <h2>Case-Control Logistic Regression</h2>
+
+            <div class="command-block">
+              <span class="command-title">完整範例</span>
+              <code>plink --bfile qc_final --pheno phenotype.txt --pheno-name STATUS --covar covariates.txt --covar-name AGE,SEX,PC1-PC3 --logistic hide-covar --out gwas_logistic</code>
+            </div>
+
+            <p>
+              <code>--logistic</code> 會對 case-control phenotype 執行 logistic regression。
+              在沒有另外指定 dominant、recessive 等 modifier 時，主要 SNP effect 使用 additive dosage coding。
+            </p>
+
+            <div class="parameter-list">
+              <div>
+                <code>--pheno</code>
+                <p>載入外部 phenotype file。</p>
+              </div>
+              <div>
+                <code>--pheno-name</code>
+                <p>指定 phenotype 欄位名稱。</p>
+              </div>
+              <div>
+                <code>--covar</code>
+                <p>載入 covariate file。</p>
+              </div>
+              <div>
+                <code>--covar-name</code>
+                <p>指定要使用哪些 covariates。</p>
+              </div>
+              <div>
+                <code>--logistic</code>
+                <p>針對 case-control phenotype 執行 logistic regression。</p>
+              </div>
+              <div>
+                <code>hide-covar</code>
+                <p>不在主要輸出中逐列列出每個 covariate 的 regression result，使結果較精簡。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="lesson-card" id="output">
+            <span class="lesson-label">06</span>
+            <h2>輸出結果</h2>
+            <p>主要結果會輸出到：</p>
+
+            <pre class="code-panel"><code>gwas_logistic.assoc.logistic</code></pre>
+
+            <div class="output-table-wrap">
+              <table class="guide-table">
+                <thead>
+                  <tr>
+                    <th>欄位</th>
+                    <th>意義</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><code>CHR</code></td>
+                    <td>Chromosome</td>
+                  </tr>
+                  <tr>
+                    <td><code>SNP</code></td>
+                    <td>Variant identifier</td>
+                  </tr>
+                  <tr>
+                    <td><code>BP</code></td>
+                    <td>Base-pair coordinate</td>
+                  </tr>
+                  <tr>
+                    <td><code>A1</code></td>
+                    <td>Allele 1</td>
+                  </tr>
+                  <tr>
+                    <td><code>TEST</code></td>
+                    <td>Regression test identifier；預設 SNP additive effect 常見為 ADD</td>
+                  </tr>
+                  <tr>
+                    <td><code>NMISS</code></td>
+                    <td>此 variant 實際納入 regression 的 observations 數</td>
+                  </tr>
+                  <tr>
+                    <td><code>OR</code></td>
+                    <td>Odds ratio；若使用 <code>--logistic beta</code> 則改報 regression coefficient</td>
+                  </tr>
+                  <tr>
+                    <td><code>STAT</code></td>
+                    <td>Regression test statistic</td>
+                  </tr>
+                  <tr>
+                    <td><code>P</code></td>
+                    <td>Association test P-value</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="lesson-card" id="interpret">
+            <span class="lesson-label">07</span>
+            <h2>結果怎麼看？</h2>
+            <p>
+              對每個 variant，最常先關注 <code>OR</code> 與 <code>P</code>。
+              OR 描述 A1 allele 與 outcome odds 的關係，而 P-value 則用來評估 association evidence。
+            </p>
+
+            <div class="result-interpret-grid">
+              <div class="interpret-box">
+                <strong>OR &gt; 1</strong>
+                <span>A1 與較高 outcome odds 相關</span>
+              </div>
+              <div class="interpret-box">
+                <strong>OR &lt; 1</strong>
+                <span>A1 與較低 outcome odds 相關</span>
+              </div>
+              <div class="interpret-box">
+                <strong>P-value</strong>
+                <span>下一步可搭配 GWAS significance threshold 與 Manhattan plot 判讀</span>
+              </div>
+            </div>
+
+            <p class="example-note">
+              OR 的方向必須配合 A1 allele 一起解讀；不能只看到 OR 大於或小於 1 就忽略 effect allele。
+            </p>
+          </section>
+
+          <section class="lesson-card note-card" id="notes">
+            <span class="lesson-label">08</span>
+            <h2>注意事項</h2>
+            <ul>
+              <li>Case-control phenotype 在 PLINK 1.9 中通常以 1=control、2=case 編碼；<code>--1</code> 可改用 0/1 編碼。</li>
+              <li>若 covariate 有 missing value，實際納入 regression 的 sample 數可能減少，因此需留意 <code>NMISS</code>。</li>
+              <li>Age、sex、PCs 等 covariates 是否納入模型，應依研究設計與資料特性決定。</li>
+              <li>不要直接使用只剩 LD-pruned SNPs 的資料做完整 genome-wide association testing；LD pruning 與 association testing 的目的不同。</li>
+              <li><code>--logistic</code> 預設報 odds ratio；若加上 <code>beta</code> modifier，則改報 regression coefficient。</li>
+              <li>單一 variant 的 P-value 之後仍需要放到 genome-wide multiple-testing 的脈絡下解讀。</li>
+            </ul>
+          </section>
+
+          <section class="lesson-card" id="sources">
+            <span class="lesson-label">09</span>
+            <h2>參考資料</h2>
+            <p>本頁 phenotype、covariate、logistic regression 與輸出欄位依據 PLINK 1.9 官方文件整理。</p>
+            <div class="source-links">
+              <a class="reference-link" href="https://www.cog-genomics.org/plink/1.9/assoc" target="_blank" rel="noopener">
+                PLINK 1.9 — Association analysis ↗
+              </a>
+              <a class="reference-link" href="https://www.cog-genomics.org/plink/1.9/input" target="_blank" rel="noopener">
+                PLINK 1.9 — Standard data input ↗
+              </a>
+              <a class="reference-link" href="https://www.cog-genomics.org/plink/1.9/formats" target="_blank" rel="noopener">
+                PLINK 1.9 — File formats ↗
+              </a>
+            </div>
+          </section>
+
+          <nav class="lesson-pagination" aria-label="教學頁導覽">
+            <a class="page-nav muted-link" href="pca.html">← PCA</a>
+            <a class="page-nav home-link" href="../index.html">回到首頁</a>
+            <a class="page-nav muted-link" href="gwas-results.html">下一頁：GWAS Results →</a>
+          </nav>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>PLINK / GWAS QC Guide</p>
+      <p>Association Analysis · Beginner-friendly learning page.</p>
+    </div>
+  </footer>
+</body>
+</html>
