@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="PLINK PCA 教學：介紹 --pca、population structure、eigenvalues、eigenvectors 與 GWAS covariates。">
+  <title>PCA | PLINK / GWAS QC Guide</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="../index.html">
+        <span class="brand-icon">🧬</span>
+        <span>PLINK / GWAS QC Guide</span>
+      </a>
+      <nav class="top-nav">
+        <a href="../index.html#workflow">Workflow</a>
+        <a href="../index.html#qc-topics">QC Topics</a>
+        <a href="../index.html#gwas-analysis">GWAS Analysis</a>
+        <a href="../index.html#gwas-results">GWAS Results</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="lesson-hero">
+      <div class="container lesson-hero-grid">
+        <div>
+          <p class="eyebrow">Quality Control · Step 05</p>
+          <h1>PCA</h1>
+          <p class="hero-text">
+            利用 Principal Component Analysis（PCA）觀察樣本的 population structure，
+            並將主要成分作為後續 association analysis 的 covariates。
+          </p>
+          <div class="tag-row">
+            <span class="code-tag">--pca</span>
+            <span class="code-tag">.eigenvec</span>
+            <span class="code-tag">.eigenval</span>
+          </div>
+        </div>
+        <div class="lesson-icon" aria-hidden="true">📊</div>
+      </div>
+    </section>
+
+    <section class="lesson-section">
+      <div class="container lesson-layout">
+        <aside class="lesson-sidebar">
+          <p class="sidebar-title">本頁內容</p>
+          <a href="#what">這一步在做什麼？</a>
+          <a href="#why">為什麼 GWAS 要做 PCA？</a>
+          <a href="#command">PLINK 指令</a>
+          <a href="#outputs">輸出檔案</a>
+          <a href="#interpret">如何解讀 PC？</a>
+          <a href="#covariates">加入後續模型</a>
+          <a href="#notes">注意事項</a>
+          <a href="#sources">參考資料</a>
+        </aside>
+
+        <article class="lesson-content">
+          <section class="lesson-card" id="what">
+            <span class="lesson-label">01</span>
+            <h2>這一步在做什麼？</h2>
+            <p>
+              PCA 是一種 dimension reduction 方法，可以把大量 genotype variation
+              轉換成少數幾個 principal components（PCs）。
+              在 GWAS 中，這些 PCs 常用來描述樣本之間主要的遺傳差異與 population structure。
+            </p>
+
+            <div class="concept-flow">
+              <div class="mini-step">
+                <strong>Genotype Data</strong>
+                <span>大量 SNP 資訊</span>
+              </div>
+              <span class="mini-arrow">→</span>
+              <div class="mini-step">
+                <strong>PCA</strong>
+                <span>找出主要變異方向</span>
+              </div>
+              <span class="mini-arrow">→</span>
+              <div class="mini-step">
+                <strong>PC1, PC2, ...</strong>
+                <span>用較少維度描述樣本差異</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="lesson-card" id="why">
+            <span class="lesson-label">02</span>
+            <h2>為什麼 GWAS 要做 PCA？</h2>
+            <p>
+              不同 ancestry 或 subpopulation 的 allele frequencies 可能不同。
+              如果 phenotype 與 population structure 同時有關，沒有適當校正時，
+              association analysis 可能受到 population stratification 的影響。
+            </p>
+            <p>
+              因此常見做法是使用前幾個 PCs 作為 covariates，
+              協助校正 population structure 對 association analysis 的影響。
+            </p>
+
+            <div class="example-note">
+              PCA 不只是「畫圖分群」；在 GWAS 中，更重要的用途之一是產生可加入 regression model 的 covariates。
+            </div>
+          </section>
+
+          <section class="lesson-card" id="command">
+            <span class="lesson-label">03</span>
+            <h2>PLINK 指令</h2>
+
+            <div class="command-block">
+              <span class="command-title">基本 PCA</span>
+              <code>plink --bfile step5_ld_pruned --pca --out pca</code>
+            </div>
+
+            <p>
+              PLINK 1.9 的 <code>--pca</code> 預設會由 variance-standardized relationship matrix
+              萃取前 20 個 principal components。
+            </p>
+
+            <div class="command-block">
+              <span class="command-title">指定 PC 數量</span>
+              <code>plink --bfile step5_ld_pruned --pca 10 --out pca</code>
+            </div>
+
+            <p>
+              例如 <code>--pca 10</code> 表示輸出前 10 個 principal components。
+              要保留多少 PCs 應依研究設計、資料結構與後續分析需求決定。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="outputs">
+            <span class="lesson-label">04</span>
+            <h2>輸出檔案</h2>
+
+            <div class="output-grid">
+              <div class="output-box keep">
+                <code>pca.eigenvec</code>
+                <p>
+                  每個 sample 的 principal component scores。
+                  預設前兩欄為 FID、IID，後面依序為 PC1、PC2、PC3 ...
+                </p>
+              </div>
+
+              <div class="output-box remove">
+                <code>pca.eigenval</code>
+                <p>
+                  各 principal component 對應的 eigenvalues，
+                  每一行對應一個 PC。
+                </p>
+              </div>
+            </div>
+
+            <div class="parameter-list">
+              <div>
+                <code>--pca header</code>
+                <p>可要求 <code>.eigenvec</code> 加上 header。</p>
+              </div>
+              <div>
+                <code>--pca tabs</code>
+                <p>可讓 <code>.eigenvec</code> 使用 tab 分隔。</p>
+              </div>
+              <div>
+                <code>--pca var-wts</code>
+                <p>可額外輸出 variant weights；一般初學 QC 流程不一定需要。</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="lesson-card" id="interpret">
+            <span class="lesson-label">05</span>
+            <h2>如何解讀 PC？</h2>
+            <p>
+              常見做法是將 PC1 與 PC2 畫成 scatter plot，
+              觀察樣本是否形成不同群聚、是否有明顯 outliers，
+              或是否呈現與 ancestry / population structure 相符的分布。
+            </p>
+
+            <div class="pca-visual" aria-label="PCA 散點圖示意">
+              <div class="axis-y">PC2</div>
+              <div class="scatter-area">
+                <span class="dot group-a d1"></span>
+                <span class="dot group-a d2"></span>
+                <span class="dot group-a d3"></span>
+                <span class="dot group-a d4"></span>
+                <span class="dot group-a d5"></span>
+                <span class="dot group-b d6"></span>
+                <span class="dot group-b d7"></span>
+                <span class="dot group-b d8"></span>
+                <span class="dot group-b d9"></span>
+                <span class="dot group-b d10"></span>
+              </div>
+              <div class="axis-x">PC1</div>
+            </div>
+
+            <p class="example-note">
+              這只是概念示意圖。PCA 群聚本身不應直接被解讀成固定的人種或族群分類，
+              實際解讀需要結合研究樣本來源與 metadata。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="covariates">
+            <span class="lesson-label">06</span>
+            <h2>如何加入後續 Association Analysis？</h2>
+            <p>
+              PLINK 官方文件指出，top principal components 常被當作 association regression 的 covariates，
+              以協助校正 population stratification。
+            </p>
+
+            <div class="concept-flow">
+              <div class="mini-step">
+                <strong>PCA</strong>
+                <span>取得 PC1、PC2、PC3 ...</span>
+              </div>
+              <span class="mini-arrow">→</span>
+              <div class="mini-step">
+                <strong>Covariate file</strong>
+                <span>整理需要納入的 PCs</span>
+              </div>
+              <span class="mini-arrow">→</span>
+              <div class="mini-step">
+                <strong>GWAS Model</strong>
+                <span>在 regression 中進行調整</span>
+              </div>
+            </div>
+
+            <p>
+              要放入幾個 PCs 並沒有唯一答案，應依 population structure、
+              研究設計與分析策略決定，而不是固定使用某個數量。
+            </p>
+          </section>
+
+          <section class="lesson-card note-card" id="notes">
+            <span class="lesson-label">07</span>
+            <h2>注意事項</h2>
+            <ul>
+              <li>PLINK 1.9 的 <code>--pca</code> 預設輸出前 20 個 PCs，也可以自行指定數量。</li>
+              <li>PCA 常使用 LD-pruned SNP set，避免高度相關 variants 對 PCs 造成過度影響。</li>
+              <li><code>.eigenvec</code> 是 sample-level PC scores；<code>.eigenval</code> 則是各 PC 的 eigenvalues。</li>
+              <li>前幾個 PCs 常可作為 association analysis 的 covariates，但納入數量沒有唯一固定標準。</li>
+              <li>PLINK 1.9 官方文件目前也會對 PCA / GRM 中存在 monomorphic variant 的情況提出警告，因此 PCA 前仍應確認資料品質。</li>
+            </ul>
+          </section>
+
+          <section class="lesson-card" id="sources">
+            <span class="lesson-label">08</span>
+            <h2>參考資料</h2>
+            <p>本頁 PCA 指令、輸出格式與 covariate 用途依據 PLINK 1.9 官方文件整理。</p>
+            <p>
+              <a class="reference-link" href="https://www.cog-genomics.org/plink/1.9/strat" target="_blank" rel="noopener">
+                PLINK 1.9 — Population stratification ↗
+              </a>
+            </p>
+          </section>
+
+          <nav class="lesson-pagination" aria-label="教學頁導覽">
+            <a class="page-nav muted-link" href="relatedness.html">← Relatedness</a>
+            <a class="page-nav home-link" href="../index.html">回到首頁</a>
+            <a class="page-nav muted-link" href="association.html">下一頁：Association Analysis →</a>
+          </nav>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>PLINK / GWAS QC Guide</p>
+      <p>PCA · Beginner-friendly learning page.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="GWAS Manhattan Plot 教學：介紹 chromosome、genomic position、-log10(P)、significance line 與 peak 的基本判讀。">
+  <title>Manhattan Plot | PLINK / GWAS QC Guide</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container nav-wrap">
+      <a class="brand" href="../index.html">
+        <span class="brand-icon">🧬</span>
+        <span>PLINK / GWAS QC Guide</span>
+      </a>
+      <nav class="top-nav">
+        <a href="../index.html#workflow">Workflow</a>
+        <a href="../index.html#qc-topics">QC Topics</a>
+        <a href="../index.html#gwas-analysis">GWAS Analysis</a>
+        <a href="../index.html#gwas-results">GWAS Results</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="lesson-hero results-hero">
+      <div class="container lesson-hero-grid">
+        <div>
+          <p class="eyebrow">GWAS Results Interpretation</p>
+          <h1>Manhattan Plot</h1>
+          <p class="hero-text">
+            將全基因體 association results 依 chromosome 排列，
+            並用 −log10(P) 表示每個 variant 的 association strength，
+            讓研究者快速觀察顯著訊號集中在哪些 genomic regions。
+          </p>
+          <div class="tag-row">
+            <span class="code-tag">Chromosome</span>
+            <span class="code-tag">Genomic position</span>
+            <span class="code-tag">−log10(P)</span>
+          </div>
+        </div>
+        <div class="lesson-icon" aria-hidden="true">🏙️</div>
+      </div>
+    </section>
+
+    <section class="lesson-section">
+      <div class="container lesson-layout">
+        <aside class="lesson-sidebar">
+          <p class="sidebar-title">本頁內容</p>
+          <a href="#what">這張圖在看什麼？</a>
+          <a href="#axes">X 軸與 Y 軸</a>
+          <a href="#lines">顯著性線</a>
+          <a href="#peaks">Peak 怎麼看？</a>
+          <a href="#example">圖形示意</a>
+          <a href="#notes">注意事項</a>
+          <a href="#sources">參考資料</a>
+        </aside>
+
+        <article class="lesson-content">
+          <section class="lesson-card" id="what">
+            <span class="lesson-label">01</span>
+            <h2>這張圖在看什麼？</h2>
+            <p>
+              Manhattan Plot 是 GWAS 最常見的結果圖之一。
+              圖上的每一個點通常代表一個 variant / SNP，
+              並依它所在的 chromosome 與 genomic position 排列。
+            </p>
+            <p>
+              因為整張圖會把不同 chromosome 上的大量 variants 一次畫出來，
+              若某個 genomic region 出現一串很高的點，看起來就像城市裡的高樓，
+              因而得名 Manhattan Plot。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="axes">
+            <span class="lesson-label">02</span>
+            <h2>X 軸與 Y 軸代表什麼？</h2>
+
+            <div class="axis-grid">
+              <div class="axis-card">
+                <span class="axis-badge">X</span>
+                <div>
+                  <h3>Chromosome / Genomic Position</h3>
+                  <p>
+                    X 軸依 chromosome 排列，每個點的位置對應 variant 的 genomic position。
+                    常見呈現方式會讓相鄰 chromosome 使用交錯顏色，方便視覺區分。
+                  </p>
+                </div>
+              </div>
+
+              <div class="axis-card">
+                <span class="axis-badge">Y</span>
+                <div>
+                  <h3>−log10(P)</h3>
+                  <p>
+                    Y 軸通常將 association test 的 P-value 轉成
+                    <code>−log10(P)</code>。因此 P-value 越小，點就會越高。
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="formula-card">
+              <span class="formula-title">Example</span>
+              <div class="formula">P = 1 × 10<sup>−8</sup> → −log10(P) = 8</div>
+              <p>
+                因此圖上越高的點，代表 association evidence 越強。
+              </p>
+            </div>
+          </section>
+
+          <section class="lesson-card" id="lines">
+            <span class="lesson-label">03</span>
+            <h2>顯著性線怎麼看？</h2>
+
+            <div class="line-legend">
+              <div class="legend-row">
+                <span class="legend-line genome-line"></span>
+                <div>
+                  <strong>Genome-wide significance</strong>
+                  <p>常見 human GWAS 門檻：<code>P &lt; 5 × 10⁻⁸</code></p>
+                </div>
+              </div>
+
+              <div class="legend-row">
+                <span class="legend-line suggestive-line"></span>
+                <div>
+                  <strong>Suggestive threshold</strong>
+                  <p>可依研究設定，例如部分 studies 使用 <code>P &lt; 1 × 10⁻⁵</code></p>
+                </div>
+              </div>
+            </div>
+
+            <p class="example-note">
+              Suggestive significance 並沒有單一固定標準；
+              圖上是否畫第二條 suggestive line，以及使用哪個門檻，都應依該研究的定義。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="peaks">
+            <span class="lesson-label">04</span>
+            <h2>Peak 怎麼看？</h2>
+            <p>
+              若某個 chromosome 區域出現多個相鄰 variants 同時具有很小的 P-values，
+              Manhattan Plot 上會形成一個明顯的 peak。
+            </p>
+
+            <div class="result-interpret-grid">
+              <div class="interpret-box">
+                <strong>單一高點</strong>
+                <span>可能是強 association signal，但仍需要確認資料品質與鄰近 variants。</span>
+              </div>
+
+              <div class="interpret-box">
+                <strong>一整群高點</strong>
+                <span>常代表同一 locus 中多個 variants 因 LD 而一起呈現 association signal。</span>
+              </div>
+
+              <div class="interpret-box">
+                <strong>跨過 significance line</strong>
+                <span>代表該 variant 達到圖中所設定的 statistical significance threshold。</span>
+              </div>
+            </div>
+
+            <p>
+              Peak 不應直接等同於「這個 SNP 就是 causal variant」。
+              真正的 causal interpretation 通常還需要 fine-mapping、functional annotation、
+              replication 或其他後續分析。
+            </p>
+          </section>
+
+          <section class="lesson-card" id="example">
+            <span class="lesson-label">05</span>
+            <h2>Manhattan Plot 示意</h2>
+
+            <div class="manhattan-demo" aria-label="Manhattan plot 示意圖">
+              <div class="manhattan-y-label">−log10(P)</div>
+              <div class="manhattan-plot">
+                <div class="grid-line gl1"></div>
+                <div class="grid-line gl2"></div>
+                <div class="grid-line gl3"></div>
+                <div class="sig-line sig-genome"></div>
+                <div class="sig-line sig-suggestive"></div>
+
+                <span class="m-dot c1 p1"></span>
+                <span class="m-dot c1 p2"></span>
+                <span class="m-dot c1 p3"></span>
+                <span class="m-dot c2 p4"></span>
+                <span class="m-dot c2 p5"></span>
+                <span class="m-dot c2 p6"></span>
+                <span class="m-dot c1 p7"></span>
+                <span class="m-dot c1 p8"></span>
+                <span class="m-dot c1 p9"></span>
+                <span class="m-dot c2 p10"></span>
+                <span class="m-dot c2 p11"></span>
+                <span class="m-dot c2 p12"></span>
+                <span class="m-dot c1 p13"></span>
+                <span class="m-dot c1 p14"></span>
+                <span class="m-dot c1 p15"></span>
+                <span class="m-dot c2 peak1"></span>
+                <span class="m-dot c2 peak2"></span>
+                <span class="m-dot c2 peak3"></span>
+                <span class="m-dot c2 peak4"></span>
+                <span class="m-dot c1 p16"></span>
+                <span class="m-dot c1 p17"></span>
+                <span class="m-dot c2 p18"></span>
+                <span class="m-dot c2 p19"></span>
+              </div>
+
+              <div class="chromosome-labels">
+                <span>Chr 1</span>
+                <span>Chr 2</span>
+                <span>Chr 3</span>
+                <span>Chr 4</span>
+                <span>Chr 5</span>
+              </div>
+            </div>
+
+            <div class="plot-caption">
+              <span><i class="caption-line genome"></i> Genome-wide significance</span>
+              <span><i class="caption-line suggestive"></i> Suggestive threshold</span>
+            </div>
+
+            <p class="example-note">
+              此圖只是概念示意，並非真實 GWAS 資料。
+            </p>
+          </section>
+
+          <section class="lesson-card note-card" id="notes">
+            <span class="lesson-label">06</span>
+            <h2>注意事項</h2>
+            <ul>
+              <li>Manhattan Plot 是 association result 的視覺化工具，不是 PLINK QC 指令。</li>
+              <li>Y 軸越高代表 P-value 越小，而不是 effect size 越大。</li>
+              <li>跨過 genome-wide significance line 代表達到統計門檻，不代表已證明 causality。</li>
+              <li>一個 locus 中可能有許多 SNP 因 LD 而形成同一個 peak。</li>
+              <li>判讀 peak 時應同時查看 effect size、allele frequency、sample size、imputation quality 與區域 LD structure。</li>
+            </ul>
+          </section>
+
+          <section class="lesson-card" id="sources">
+            <span class="lesson-label">07</span>
+            <h2>參考資料</h2>
+            <p>
+              本頁主要介紹 Manhattan Plot 在 GWAS 中的標準視覺化概念，
+              並延續前一頁的 significance threshold 定義。
+            </p>
+
+            <div class="source-links">
+              <a class="reference-link" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8847724/" target="_blank" rel="noopener">
+                Post-GWAS analysis overview ↗
+              </a>
+              <a class="reference-link" href="gwas-results.html">
+                回顧 Significance Thresholds ↗
+              </a>
+            </div>
+          </section>
+
+          <nav class="lesson-pagination" aria-label="教學頁導覽">
+            <a class="page-nav muted-link" href="gwas-results.html">← Significance Thresholds</a>
+            <a class="page-nav home-link" href="../index.html">回到首頁</a>
+            <a class="page-nav muted-link" href="qq-plot.html">下一頁：QQ Plot →</a>
+          </nav>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <p>PLINK / GWAS QC Guide</p>
+      <p>GWAS Results · Manhattan Plot.</p>
+    </div>
+  </footer>
+</body>
+</html>
